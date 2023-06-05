@@ -28,23 +28,36 @@ def get_rooms():
     rooms = Room.query.all()
     return jsonify([room.serialize() for room in rooms])
 
+
 @bp.route('/book', methods=['POST'])
 def book():
     form = BookingForm()
-    form.room_type.choices = [(room.room_type, room.room_type) for room in Room.query.distinct(Room.room_type)]
+
+    # Populate room_type choices
+    form.room_type.choices = [(room.room_type, room.room_type) for room in Room.query.with_entities(Room.room_type).distinct()]
+
     if form.validate_on_submit():
-        booking = Booking(
-            user_id=session['user_id'],
-            room_id=Room.query.filter_by(room_type=form.room_type.data).first().room_id,
-            check_in_date=form.check_in_date.data,
-            check_out_date=form.check_out_date.data,
-            special_requests=form.special_requests.data
-        )
-        db.session.add(booking)
-        db.session.commit()
-        return jsonify({'message': 'Booking successful.'}), 200
+        room_type = form.room_type.data
+        room = Room.query.filter_by(room_type=room_type).first()
+
+        if room:
+            booking = Booking(
+                user_id=session['user_id'],
+                room_id=room.room_id,
+                check_in_date=form.check_in_date.data,
+                check_out_date=form.check_out_date.data,
+                special_requests=form.special_requests.data
+            )
+            db.session.add(booking)
+            db.session.commit()
+
+            return jsonify({'message': 'Booking successful.'}), 200
+        else:
+            return jsonify({'message': 'Invalid room type.'}), 400
 
     return jsonify({'message': 'Invalid form data.'}), 400
+
+
 
 @bp.route('/promotions/create', methods=['POST'])
 def create_promotion():

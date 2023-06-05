@@ -23,16 +23,26 @@ class Room(db.Model):
     status = db.Column(db.String(20), nullable=False)
     bookings = db.relationship('Booking', backref='room', lazy=True)
 
+    def serialize(self):
+        return {
+            'room_id': self.room_id,
+            'room_type': self.room_type,
+            'room_price': str(self.room_price),
+            'status': self.status
+        }
+
 class Booking(db.Model):
     __tablename__ = 'bookings'
 
     booking_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    room_id = db.Column(db.Integer, db.ForeignKey('rooms.room_id'), nullable=False)
+    room_id = db.Column(db.Integer, db.ForeignKey('rooms.room_id'), nullable=False)  # Update the foreign key column name
     check_in_date = db.Column(db.Date, nullable=False)
     check_out_date = db.Column(db.Date, nullable=False)
     special_requests = db.Column(db.Text)
     payment = db.relationship('Payment', backref='booking', uselist=False)
+
+
 
 class Payment(db.Model):
     __tablename__ = 'payments'
