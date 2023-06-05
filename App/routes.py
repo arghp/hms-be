@@ -1,9 +1,9 @@
 from datetime import date
 from flask import Blueprint, request, jsonify, session
 from werkzeug.security import check_password_hash, generate_password_hash
-from .config import db
-from .Models.models import User, Room, Booking, Promotion
-from .forms import BookingForm, PromotionForm
+from App.Models.models import User, Room, Booking, Promotion
+from App.forms import BookingForm, PromotionForm
+from App.config import db
 
 bp = Blueprint('main', __name__)
 
@@ -27,6 +27,7 @@ def login():
 def get_rooms():
     rooms = Room.query.all()
     return jsonify([room.serialize() for room in rooms])
+
 
 
 @bp.route('/book', methods=['POST'])
