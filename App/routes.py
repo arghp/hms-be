@@ -2,14 +2,18 @@ from datetime import date
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template, session
 from werkzeug.security import check_password_hash
-from App import app, db
+from . import db
 from .Models.models import User, Room, Booking, Promotion
 from .forms import BookingForm, PromotionForm
 
 
 bp = Blueprint('main', __name__)
 
-@app.route('/login', methods=['GET', 'POST'])
+@bp.route('/', methods=['GET'])
+def home():
+    return 'Hello, World!'
+
+@bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
@@ -37,7 +41,7 @@ def get_rooms():
     return render_template('rooms.html', rooms=rooms)
 
 
-@app.route('/book', methods=['GET', 'POST'])
+@bp.route('/book', methods=['GET', 'POST'])
 def book():
     form = BookingForm()
     form.room_type.choices = [(room.room_type, room.room_type) for room in Room.query.distinct(Room.room_type)]
@@ -56,7 +60,7 @@ def book():
     return render_template('book.html', form=form)
 
 
-@app.route('/promotions/create', methods=['GET', 'POST'])
+@bp.route('/promotions/create', methods=['GET', 'POST'])
 def create_promotion():
     form = PromotionForm()
     if form.validate_on_submit():
@@ -74,7 +78,7 @@ def create_promotion():
     return render_template('create_promotion.html', form=form)
 
 
-@app.route('/checkin', methods=['GET', 'POST'])
+@bp.route('/checkin', methods=['GET', 'POST'])
 def checkin():
     if request.method == 'POST':
         booking_id = request.form.get('booking_id')
