@@ -1,11 +1,9 @@
 from datetime import date
-
-from flask import Blueprint, request, redirect, url_for, flash, render_template, session
-from werkzeug.security import check_password_hash
-from . import db
+from flask import Blueprint, request, jsonify, session
+from werkzeug.security import check_password_hash, generate_password_hash
+from .config import db
 from .Models.models import User, Room, Booking, Promotion
 from .forms import BookingForm, PromotionForm
-
 
 bp = Blueprint('main', __name__)
 
@@ -13,35 +11,24 @@ bp = Blueprint('main', __name__)
 def home():
     return 'Hello, World!'
 
-@bp.route('/login', methods=['GET', 'POST'])
+@bp.route('/login', methods=['POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+    username = request.form['username']
+    password = request.form['password']
 
-        user = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(username=username).first()
 
-        if user and check_password_hash(user.password_hash, password):
-            session['user_id'] = user.user_id
-            # store additional user details in the session
-            session['username'] = user.username
-            session['first_name'] = user.first_name
-            session['last_name'] = user.last_name
-            flash('Logged in successfully.')
-            return redirect(url_for('dashboard'))
+    if user and check_password_hash(user.password_hash, password):
+        return jsonify({'message': 'Logged in successfully.'}), 200
 
-        flash('Invalid username or password.')
-
-    return render_template('login.html')
-
+    return jsonify({'message': 'Invalid username or password.'}), 401
 
 @bp.route('/rooms', methods=['GET'])
 def get_rooms():
     rooms = Room.query.all()
-    return render_template('rooms.html', rooms=rooms)
+    return jsonify([room.serialize() for room in rooms])
 
-
-@bp.route('/book', methods=['GET', 'POST'])
+@bp.route('/book', methods=['POST'])
 def book():
     form = BookingForm()
     form.room_type.choices = [(room.room_type, room.room_type) for room in Room.query.distinct(Room.room_type)]
@@ -55,12 +42,11 @@ def book():
         )
         db.session.add(booking)
         db.session.commit()
-        flash('Booking successful.')
-        return redirect(url_for('dashboard'))
-    return render_template('book.html', form=form)
+        return jsonify({'message': 'Booking successful.'}), 200
 
+    return jsonify({'message': 'Invalid form data.'}), 400
 
-@bp.route('/promotions/create', methods=['GET', 'POST'])
+@bp.route('/promotions/create', methods=['POST'])
 def create_promotion():
     form = PromotionForm()
     if form.validate_on_submit():
@@ -73,27 +59,58 @@ def create_promotion():
         )
         db.session.add(new_promotion)
         db.session.commit()
-        flash('Promotion created successfully.')
-        return redirect(url_for('index'))
-    return render_template('create_promotion.html', form=form)
+        return jsonify({'message': 'Promotion created successfully.'}), 200
 
+    return jsonify({'message': 'Invalid form data.'}), 400
 
-@bp.route('/checkin', methods=['GET', 'POST'])
+@bp.route('/checkin', methods=['POST'])
 def checkin():
+    booking_id = request.form.get('booking_id')
+    room_id = request.form.get('room_id')
+
+    booking = Booking.query.filter_by(booking_id=booking_id, room_id=room_id).first()
+
+    if booking and booking.check_in_date <= date.today():
+        booking.status = "Checked In"
+        db.session.commit()
+        return jsonify({'message': 'Check-in successful.'}), 200
+
+    return jsonify({'message': 'Invalid booking details or check-in date is in the future.'}), 400
+
+
+@bp.route('/register', methods=['POST'])
+def register():
     if request.method == 'POST':
-        booking_id = request.form.get('booking_id')
-        room_id = request.form.get('room_id')
+        username = request.form['username']
+        password = request.form['password']
+        email = request.form['email']
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
 
-        # Fetch the booking from the database
-        booking = Booking.query.filter_by(booking_id=booking_id, room_id=room_id).first()
+        # Check if the username or email already exists in the database
+        existing_user = User.query.filter_by(username=username).first()
+        existing_email = User.query.filter_by(email=email).first()
 
-        # Check if the booking exists and if the check-in date is today or in the past
-        if booking and booking.check_in_date <= date.today():
-            booking.status = "Checked In"
-            db.session.commit()
-            flash('Check-in successful.')
-            return redirect(url_for('dashboard'))
+        if existing_user:
+            return 'Username already exists. Please choose a different username.', 409
 
-        flash('Invalid booking details or check-in date is in the future.')
+        if existing_email:
+            return 'Email address already exists. Please use a different email.', 409
 
-    return render_template('checkin.html')
+        # Create a new user object
+        new_user = User(
+            username=username,
+            password_hash=generate_password_hash(password),
+            email=email,
+            first_name=first_name,
+            last_name=last_name
+        )
+
+        # Add the user to the database
+        db.session.add(new_user)
+        db.session.commit()
+
+        return 'Registration successful.', 201
+
+    return 'Invalid request.', 400
+

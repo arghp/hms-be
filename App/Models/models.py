@@ -1,9 +1,9 @@
-from . import db
+from App.config import db
 
 class User(db.Model):
     __tablename__ = 'users'
 
-    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False, unique=True)
@@ -17,7 +17,7 @@ class User(db.Model):
 class Room(db.Model):
     __tablename__ = 'rooms'
 
-    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, primary_key=True)
     room_type = db.Column(db.String(50), nullable=False)
     room_price = db.Column(db.Numeric, nullable=False)
     status = db.Column(db.String(20), nullable=False)
@@ -26,9 +26,9 @@ class Room(db.Model):
 class Booking(db.Model):
     __tablename__ = 'bookings'
 
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'), nullable=False)
+    booking_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    room_id = db.Column(db.Integer, db.ForeignKey('rooms.room_id'), nullable=False)
     check_in_date = db.Column(db.Date, nullable=False)
     check_out_date = db.Column(db.Date, nullable=False)
     special_requests = db.Column(db.Text)
@@ -37,14 +37,16 @@ class Booking(db.Model):
 class Payment(db.Model):
     __tablename__ = 'payments'
 
-    id = db.Column(db.Integer, primary_key=True)
-    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'), nullable=False)
+    payment_id = db.Column(db.Integer, primary_key=True)
+    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.booking_id'), nullable=False)
     payment_date = db.Column(db.Date, nullable=False)
     amount = db.Column(db.Numeric, nullable=False)
     payment_status = db.Column(db.String(50), nullable=False)
     invoice_details = db.Column(db.Text)
 
 class Promotion(db.Model):
+    __tablename__ = 'promotions'
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(50), nullable=False)
     discount = db.Column(db.Integer, nullable=False)  # as percentage
