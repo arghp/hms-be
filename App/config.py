@@ -8,7 +8,7 @@ secret_key = os.urandom(24)
 
 class Config:
     SECRET_KEY = secret_key
-    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:ekkasak@localhost:5432/hotel_management'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:password@localhost:5432/hotel_management'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 class TestingConfig(Config):
